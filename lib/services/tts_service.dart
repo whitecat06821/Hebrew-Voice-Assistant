@@ -1,4 +1,5 @@
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:flutter/foundation.dart';
 
 class TTSService {
   static final TTSService _instance = TTSService._internal();
@@ -23,4 +24,4 @@ class TTSService {
   void setCompletionHandler(VoidCallback onComplete) {
     _flutterTts.setCompletionHandler(onComplete);
   }
-} 
+}
