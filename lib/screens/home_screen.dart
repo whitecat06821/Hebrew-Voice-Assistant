@@ -1,7 +1,12 @@
-import 'package:flutter/material.dart';
+When the user taps the red "סיים שיחה" button on the home screen, all speech recognition and TTS will stop. Optionally, you can reset the UI.
+And I want the initial state to be the stopped state.
+Once the start button is clicked, the app will recognize and echo the speech.
+And if you stop, all actions will stop.
+And I change the icon and button color to easily recognize the start and stop states.import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/tts_service.dart';
 import '../services/stt_service.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _recognizedText = 'כאן יופיע הטקסט המתומלל';
+  String _lastRecognized = '';
 
   @override
   void initState() {
@@ -22,11 +28,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onTtsComplete() {
-    STTService().listen(onResult: (text) {
-      setState(() {
-        _recognizedText = text.isEmpty ? 'כאן יופיע הטקסט המתומלל' : text;
-      });
-    });
+    STTService().listen(
+      onResult: (text) {
+        setState(() {
+          _recognizedText = text.isEmpty ? 'כאן יופיע הטקסט המתומלל' : text;
+          _lastRecognized = text;
+        });
+      },
+      onFinal: () async {
+        if (_lastRecognized.isNotEmpty) {
+          await Future.delayed(const Duration(seconds: 1));
+          TTSService().speak(_lastRecognized);
+        }
+      },
+      pauseDuration: const Duration(seconds: 2),
+    );
   }
 
   Future<void> _requestMicPermission() async {

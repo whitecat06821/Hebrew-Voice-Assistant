@@ -1,10 +1,12 @@
 import 'package:speech_to_text/speech_to_text.dart';
+import 'dart:async';
 
 class STTService {
   static final STTService _instance = STTService._internal();
   factory STTService() => _instance;
   final SpeechToText _speechToText = SpeechToText();
   bool _isInitialized = false;
+  Timer? _pauseTimer;
 
   STTService._internal();
 
@@ -19,14 +21,27 @@ class STTService {
     return _isInitialized;
   }
 
-  Future<void> listen({required Function(String) onResult}) async {
+  Future<void> listen({
+    required Function(String) onResult,
+    required VoidCallback onFinal,
+    Duration pauseDuration = const Duration(seconds: 2),
+  }) async {
     await init();
     print('STT: Starting to listen (he_IL)');
+    String lastRecognized = '';
+    _pauseTimer?.cancel();
     await _speechToText.listen(
       localeId: 'he_IL',
       onResult: (result) {
         print('STT result: [34m${result.recognizedWords}[0m');
         onResult(result.recognizedWords);
+        lastRecognized = result.recognizedWords;
+        _pauseTimer?.cancel();
+        _pauseTimer = Timer(pauseDuration, () {
+          print('STT: Pause detected, triggering onFinal');
+          stop();
+          onFinal();
+        });
       },
       listenMode: ListenMode.confirmation,
     );
@@ -34,6 +49,7 @@ class STTService {
 
   void stop() {
     print('STT: Stopped listening');
+    _pauseTimer?.cancel();
     _speechToText.stop();
   }
 
