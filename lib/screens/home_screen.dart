@@ -43,12 +43,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _recognizedText = 'כאן יופיע הטקסט המתומלל';
       _lastRecognized = '';
     });
-    TTSService().setCompletionHandler(_onTtsComplete);
-    TTSService().speak(_greeting);
+    _startListening();
   }
 
-  void _onTtsComplete() {
-    if (!_isActive) return;
+  void _startListening() {
     STTService().listen(
       onResult: (text) {
         setState(() {
