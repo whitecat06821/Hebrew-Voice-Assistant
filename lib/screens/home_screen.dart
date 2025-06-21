@@ -1,8 +1,4 @@
-When the user taps the red "סיים שיחה" button on the home screen, all speech recognition and TTS will stop. Optionally, you can reset the UI.
-And I want the initial state to be the stopped state.
-Once the start button is clicked, the app will recognize and echo the speech.
-And if you stop, all actions will stop.
-And I change the icon and button color to easily recognize the start and stop states.import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/tts_service.dart';
 import '../services/stt_service.dart';
@@ -16,18 +12,43 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _recognizedText = 'כאן יופיע הטקסט המתומלל';
+  static const String _greeting = 'שלום, איך אפשר לעזור לך?';
+  String _recognizedText = _greeting;
   String _lastRecognized = '';
+  bool _isActive = false;
+  bool _isProcessing = false;
+  bool _greetingSpoken = false;
 
   @override
   void initState() {
     super.initState();
     _requestMicPermission();
+    // Show greeting immediately and speak it
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _speakGreeting();
+    });
+  }
+
+  void _speakGreeting() {
+    if (!_greetingSpoken) {
+      TTSService().speak(_greeting);
+      _greetingSpoken = true;
+    }
+  }
+
+  void _startConversation() {
+    setState(() {
+      _isActive = true;
+      _isProcessing = true;
+      _recognizedText = 'כאן יופיע הטקסט המתומלל';
+      _lastRecognized = '';
+    });
     TTSService().setCompletionHandler(_onTtsComplete);
-    TTSService().speak('שלום, איך אפשר לעזור לך?');
+    TTSService().speak(_greeting);
   }
 
   void _onTtsComplete() {
+    if (!_isActive) return;
     STTService().listen(
       onResult: (text) {
         setState(() {
@@ -36,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       },
       onFinal: () async {
+        if (!_isActive) return;
         if (_lastRecognized.isNotEmpty) {
           await Future.delayed(const Duration(seconds: 1));
           TTSService().speak(_lastRecognized);
@@ -43,6 +65,17 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       pauseDuration: const Duration(seconds: 2),
     );
+  }
+
+  void _stopConversation() {
+    setState(() {
+      _isActive = false;
+      _isProcessing = false;
+      _recognizedText = _greeting;
+      _lastRecognized = '';
+    });
+    STTService().stop();
+    TTSService().stop();
   }
 
   Future<void> _requestMicPermission() async {
@@ -93,6 +126,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isStopped = !_isActive;
+    final buttonColor = isStopped ? Colors.green : Colors.red;
+    final buttonText = isStopped ? 'התחל שיחה' : 'סיים שיחה';
+    final buttonIcon = isStopped ? Icons.mic : Icons.stop;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
@@ -123,18 +161,19 @@ class _HomeScreenState extends State<HomeScreen> {
               child: SizedBox(
                 width: 220,
                 height: 56,
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: buttonColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  onPressed: () {},
-                  child: const Text(
-                    'סיים שיחה',
-                    style: TextStyle(fontSize: 20, color: Colors.white),
+                  icon: Icon(buttonIcon, color: Colors.white),
+                  label: Text(
+                    buttonText,
+                    style: const TextStyle(fontSize: 20, color: Colors.white),
                   ),
+                  onPressed: isStopped ? _startConversation : _stopConversation,
                 ),
               ),
             ),
