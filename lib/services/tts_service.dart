@@ -19,4 +19,8 @@ class TTSService {
   Future<void> stop() async {
     await _flutterTts.stop();
   }
+
+  void setCompletionHandler(VoidCallback onComplete) {
+    _flutterTts.setCompletionHandler(onComplete);
+  }
 } 
