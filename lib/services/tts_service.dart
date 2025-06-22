@@ -5,6 +5,7 @@ class TTSService {
   static final TTSService _instance = TTSService._internal();
   factory TTSService() => _instance;
   late final FlutterTts _flutterTts;
+  VoidCallback? _onCompleteCallback;
 
   TTSService._internal() {
     _flutterTts = FlutterTts();
@@ -22,6 +23,11 @@ class TTSService {
   }
 
   void setOnComplete(VoidCallback onComplete) {
-    _flutterTts.setCompletionHandler(onComplete);
+    _onCompleteCallback = onComplete;
+    _flutterTts.setCompletionHandler(() {
+      if (_onCompleteCallback != null) {
+        _onCompleteCallback!();
+      }
+    });
   }
 }

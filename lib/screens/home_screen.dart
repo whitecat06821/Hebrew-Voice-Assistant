@@ -3,6 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../services/tts_service.dart';
 import '../services/stt_service.dart';
 import 'dart:async';
+import 'dart:math';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +19,21 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isActive = false;
   bool _isProcessing = false;
   bool _greetingSpoken = false;
+  Timer? _simulationTimer;
+  final List<String> _fakeSentences = [
+    'מה שלומך היום?',
+    'האם אתה צריך עזרה במשהו?',
+    'מזג האוויר יפה היום.',
+    'אני כאן כדי לעזור לך.',
+    'ספר לי מה תרצה לעשות.',
+    'האם יש משהו שתרצה לדעת?',
+    'במה אפשר לסייע לך?',
+    'האם תרצה לשמוע בדיחה?',
+    'האם יש לך שאלה בשבילי?',
+    'אני אוהב לעזור לאנשים.'
+  ];
+  final Random _random = Random();
+  bool _simulationActive = false;
 
   @override
   void initState() {
@@ -39,29 +55,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _startConversationLoop() {
     if (!_isActive) return;
-    STTService().listen(
-      onResult: (text) {
-        setState(() {
-          _recognizedText = text.isEmpty ? 'כאן יופיע הטקסט המתומלל' : text;
-        });
-      },
-      onFinal: () async {
-        if (!_isActive) return;
-        final speech = _recognizedText;
-        if (speech.isNotEmpty && speech != 'כאן יופיע הטקסט המתומלל') {
-          TTSService().setOnComplete(() {
-            if (_isActive) {
-              _startConversationLoop();
-            }
-          });
-          await TTSService().speak(speech);
-        } else {
-          // If nothing was recognized, restart listening
+    _simulationTimer?.cancel();
+    _simulationTimer = Timer(const Duration(seconds: 5), () {
+      if (!_isActive) return;
+      final fakeText = _fakeSentences[_random.nextInt(_fakeSentences.length)];
+      setState(() {
+        _recognizedText = fakeText;
+      });
+      TTSService().setOnComplete(() {
+        if (_isActive) {
           _startConversationLoop();
         }
-      },
-      pauseDuration: const Duration(seconds: 2),
-    );
+      });
+      TTSService().speak(fakeText);
+    });
   }
 
   void _stopConversation() {
@@ -69,8 +76,21 @@ class _HomeScreenState extends State<HomeScreen> {
       _isActive = false;
       _recognizedText = _greeting;
     });
-    STTService().stop();
+    _simulationTimer?.cancel();
     TTSService().stop();
+  }
+
+  void _toggleSimulation() {
+    setState(() {
+      _simulationActive = !_simulationActive;
+      _isActive = _simulationActive;
+      _recognizedText = _greeting;
+    });
+    if (_simulationActive) {
+      _startConversationLoop();
+    } else {
+      _stopConversation();
+    }
   }
 
   Future<void> _requestMicPermission() async {
@@ -153,30 +173,52 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             Padding(
               padding: const EdgeInsets.only(bottom: 32.0),
-              child: SizedBox(
-                width: 220,
-                height: 56,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: buttonColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: 220,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: buttonColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                      ),
+                      icon: Icon(buttonIcon, color: Colors.white),
+                      label: Text(
+                        buttonText,
+                        style: const TextStyle(fontSize: 20, color: Colors.white),
+                      ),
+                      onPressed: isStopped
+                          ? () {
+                              setState(() {
+                                _isActive = true;
+                              });
+                              _startConversationLoop();
+                            }
+                          : _stopConversation,
                     ),
                   ),
-                  icon: Icon(buttonIcon, color: Colors.white),
-                  label: Text(
-                    buttonText,
-                    style: const TextStyle(fontSize: 20, color: Colors.white),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: 220,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _simulationActive ? Colors.red : Colors.blue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                      ),
+                      onPressed: _toggleSimulation,
+                      child: Text(
+                        _simulationActive ? 'עצור סימולציה' : 'התחל סימולציה',
+                        style: const TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    ),
                   ),
-                  onPressed: isStopped
-                      ? () {
-                          setState(() {
-                            _isActive = true;
-                          });
-                          _startConversationLoop();
-                        }
-                      : _stopConversation,
-                ),
+                ],
               ),
             ),
           ],
