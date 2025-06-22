@@ -22,45 +22,46 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _requestMicPermission();
-    // Show greeting immediately and speak it
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _speakGreeting();
-    });
-  }
-
-  void _speakGreeting() {
-    if (!_greetingSpoken) {
+    _requestMicPermission().then((_) {
+      setState(() {
+        _isActive = false;
+        _recognizedText = _greeting;
+      });
+      TTSService().setOnComplete(() {
+        setState(() {
+          _isActive = true;
+        });
+        _startConversationLoop();
+      });
       TTSService().speak(_greeting);
-      _greetingSpoken = true;
-    }
+    });
   }
 
   void _startConversationLoop() {
     if (!_isActive) return;
     STTService().listen(
-      onResult: (speech) {
+      onResult: (text) {
         setState(() {
-          _recognizedText = speech;
+          _recognizedText = text.isEmpty ? 'כאן יופיע הטקסט המתומלל' : text;
         });
-        TTSService().speak(speech);
       },
-      onFinal: () {}, // No-op, handled by TTS completion
+      onFinal: () async {
+        if (!_isActive) return;
+        final speech = _recognizedText;
+        if (speech.isNotEmpty && speech != 'כאן יופיע הטקסט המתומלל') {
+          TTSService().setOnComplete(() {
+            if (_isActive) {
+              _startConversationLoop();
+            }
+          });
+          await TTSService().speak(speech);
+        } else {
+          // If nothing was recognized, restart listening
+          _startConversationLoop();
+        }
+      },
       pauseDuration: const Duration(seconds: 2),
     );
-    TTSService().setCompletionHandler(() {
-      if (_isActive) {
-        _startConversationLoop();
-      }
-    });
-  }
-
-  void _startConversation() {
-    setState(() {
-      _isActive = true;
-      _recognizedText = 'כאן יופיע הטקסט המתומלל';
-    });
-    _startConversationLoop();
   }
 
   void _stopConversation() {
@@ -70,7 +71,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     STTService().stop();
     TTSService().stop();
-    TTSService().setCompletionHandler(() {}); // Remove handler
   }
 
   Future<void> _requestMicPermission() async {
@@ -168,7 +168,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     buttonText,
                     style: const TextStyle(fontSize: 20, color: Colors.white),
                   ),
-                  onPressed: isStopped ? _startConversation : _stopConversation,
+                  onPressed: isStopped
+                      ? () {
+                          setState(() {
+                            _isActive = true;
+                          });
+                          _startConversationLoop();
+                        }
+                      : _stopConversation,
                 ),
               ),
             ),

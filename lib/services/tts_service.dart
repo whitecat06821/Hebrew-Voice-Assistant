@@ -21,7 +21,7 @@ class TTSService {
     await _flutterTts.stop();
   }
 
-  void setCompletionHandler(VoidCallback onComplete) {
+  void setOnComplete(VoidCallback onComplete) {
     _flutterTts.setCompletionHandler(onComplete);
   }
 }
