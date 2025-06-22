@@ -34,13 +34,14 @@ class STTService {
     await _speechToText.listen(
       localeId: 'he_IL',
       onResult: (result) {
-        print('STT result: [34m${result.recognizedWords}[0m');
+        print('STT result: \x1B[34m[34m[34m${result.recognizedWords}\x1B[0m');
         onResult(result.recognizedWords);
         lastRecognized = result.recognizedWords;
         _pauseTimer?.cancel();
         _pauseTimer = Timer(pauseDuration, () {
           print('STT: Pause detected, triggering onFinal');
           stop();
+          onResult(lastRecognized);
           onFinal();
         });
       },

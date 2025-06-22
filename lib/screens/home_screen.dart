@@ -36,44 +36,41 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _startConversationLoop() {
+    if (!_isActive) return;
+    STTService().listen(
+      onResult: (speech) {
+        setState(() {
+          _recognizedText = speech;
+        });
+        TTSService().speak(speech);
+      },
+      onFinal: () {}, // No-op, handled by TTS completion
+      pauseDuration: const Duration(seconds: 2),
+    );
+    TTSService().setCompletionHandler(() {
+      if (_isActive) {
+        _startConversationLoop();
+      }
+    });
+  }
+
   void _startConversation() {
     setState(() {
       _isActive = true;
-      _isProcessing = true;
       _recognizedText = 'כאן יופיע הטקסט המתומלל';
-      _lastRecognized = '';
     });
-    _startListening();
-  }
-
-  void _startListening() {
-    STTService().listen(
-      onResult: (text) {
-        setState(() {
-          _recognizedText = text.isEmpty ? 'כאן יופיע הטקסט המתומלל' : text;
-          _lastRecognized = text;
-        });
-      },
-      onFinal: () async {
-        if (!_isActive) return;
-        if (_lastRecognized.isNotEmpty) {
-          await Future.delayed(const Duration(seconds: 1));
-          TTSService().speak(_lastRecognized);
-        }
-      },
-      pauseDuration: const Duration(seconds: 2),
-    );
+    _startConversationLoop();
   }
 
   void _stopConversation() {
     setState(() {
       _isActive = false;
-      _isProcessing = false;
       _recognizedText = _greeting;
-      _lastRecognized = '';
     });
     STTService().stop();
     TTSService().stop();
+    TTSService().setCompletionHandler(() {}); // Remove handler
   }
 
   Future<void> _requestMicPermission() async {
