@@ -40,16 +40,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _requestMicPermission().then((_) {
       setState(() {
-        _isActive = false;
-        _recognizedText = _greeting;
+        _isActive = true;
+        _recognizedText = _fakeSentences[_random.nextInt(_fakeSentences.length)];
       });
-      TTSService().setOnComplete(() {
-        setState(() {
-          _isActive = true;
-        });
-        _startConversationLoop();
-      });
-      TTSService().speak(_greeting);
+      _startConversationLoop();
     });
   }
 
@@ -141,10 +135,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isStopped = !_isActive;
-    final buttonColor = isStopped ? Colors.green : Colors.red;
-    final buttonText = isStopped ? 'התחל שיחה' : 'סיים שיחה';
-    final buttonIcon = isStopped ? Icons.mic : Icons.stop;
+    // Always show as if talking
+    final buttonColor = Colors.red;
+    final buttonText = 'סיים שיחה';
+    final buttonIcon = Icons.stop;
 
     return Scaffold(
       appBar: AppBar(
@@ -173,52 +167,23 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             Padding(
               padding: const EdgeInsets.only(bottom: 32.0),
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: 220,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: buttonColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                      ),
-                      icon: Icon(buttonIcon, color: Colors.white),
-                      label: Text(
-                        buttonText,
-                        style: const TextStyle(fontSize: 20, color: Colors.white),
-                      ),
-                      onPressed: isStopped
-                          ? () {
-                              setState(() {
-                                _isActive = true;
-                              });
-                              _startConversationLoop();
-                            }
-                          : _stopConversation,
+              child: SizedBox(
+                width: 220,
+                height: 56,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: buttonColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: 220,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _simulationActive ? Colors.red : Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                      ),
-                      onPressed: _toggleSimulation,
-                      child: Text(
-                        _simulationActive ? 'עצור סימולציה' : 'התחל סימולציה',
-                        style: const TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
+                  icon: Icon(buttonIcon, color: Colors.white),
+                  label: Text(
+                    buttonText,
+                    style: const TextStyle(fontSize: 20, color: Colors.white),
                   ),
-                ],
+                  onPressed: _stopConversation,
+                ),
               ),
             ),
           ],
