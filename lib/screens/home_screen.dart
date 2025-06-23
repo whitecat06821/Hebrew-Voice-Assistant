@@ -21,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isProcessing = false;
   bool _greetingSpoken = false;
   Timer? _simulationTimer;
+  bool _isListening = false;
   final List<String> _fakeSentences = [
     'מה שלומך היום?',
     'האם אתה צריך עזרה במשהו?',
@@ -50,14 +51,55 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startConversationLoop() {
-    final fakeText = _fakeSentences[_random.nextInt(_fakeSentences.length)];
-    setState(() {
-      _recognizedText = fakeText;
-    });
+    _isListening = true;
+    STTService().listen(
+      onResult: (text) {
+        setState(() {
+          _recognizedText = text.isEmpty ? 'כאן יופיע הטקסט המתומלל' : text;
+        });
+      },
+      onFinal: () async {
+        final speech = _recognizedText;
+        if (speech.isNotEmpty && speech != 'כאן יופיע הטקסט המתומלל') {
+          _lastRecognized = speech;
+          _isListening = false;
+          _echoRecognizedSentence();
+        } else {
+          // If nothing was recognized, restart listening
+          _startConversationLoop();
+        }
+      },
+      pauseDuration: const Duration(seconds: 2),
+    );
+  }
+
+  void _echoRecognizedSentence() {
     TTSService().setOnComplete(() {
-      _startConversationLoop();
+      if (!_isListening) {
+        _echoRecognizedSentence();
+      }
     });
-    TTSService().speak(fakeText);
+    TTSService().speak(_lastRecognized);
+    // While echoing, also listen in the background for new speech
+    STTService().listen(
+      onResult: (text) {
+        setState(() {
+          _recognizedText = text.isEmpty ? 'כאן יופיע הטקסט המתומלל' : text;
+        });
+      },
+      onFinal: () async {
+        final speech = _recognizedText;
+        if (speech.isNotEmpty && speech != 'כאן יופיע הטקסט המתומלל' && speech != _lastRecognized) {
+          _lastRecognized = speech;
+          _isListening = false;
+          _echoRecognizedSentence();
+        } else {
+          // If nothing new, keep echoing
+          _isListening = false;
+        }
+      },
+      pauseDuration: const Duration(seconds: 2),
+    );
   }
 
   void _closeApp() {
