@@ -4,6 +4,7 @@ import '../services/tts_service.dart';
 import '../services/stt_service.dart';
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/services.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,58 +34,35 @@ class _HomeScreenState extends State<HomeScreen> {
     'אני אוהב לעזור לאנשים.'
   ];
   final Random _random = Random();
-  bool _simulationActive = false;
 
   @override
   void initState() {
     super.initState();
     _requestMicPermission().then((_) {
       setState(() {
-        _isActive = true;
-        _recognizedText = _fakeSentences[_random.nextInt(_fakeSentences.length)];
+        _recognizedText = _greeting;
       });
-      _startConversationLoop();
+      TTSService().setOnComplete(() {
+        _startConversationLoop();
+      });
+      TTSService().speak(_greeting);
     });
   }
 
   void _startConversationLoop() {
-    if (!_isActive) return;
-    _simulationTimer?.cancel();
-    _simulationTimer = Timer(const Duration(seconds: 5), () {
-      if (!_isActive) return;
-      final fakeText = _fakeSentences[_random.nextInt(_fakeSentences.length)];
-      setState(() {
-        _recognizedText = fakeText;
-      });
-      TTSService().setOnComplete(() {
-        if (_isActive) {
-          _startConversationLoop();
-        }
-      });
-      TTSService().speak(fakeText);
-    });
-  }
-
-  void _stopConversation() {
+    final fakeText = _fakeSentences[_random.nextInt(_fakeSentences.length)];
     setState(() {
-      _isActive = false;
-      _recognizedText = _greeting;
+      _recognizedText = fakeText;
     });
-    _simulationTimer?.cancel();
-    TTSService().stop();
-  }
-
-  void _toggleSimulation() {
-    setState(() {
-      _simulationActive = !_simulationActive;
-      _isActive = _simulationActive;
-      _recognizedText = _greeting;
-    });
-    if (_simulationActive) {
+    TTSService().setOnComplete(() {
       _startConversationLoop();
-    } else {
-      _stopConversation();
-    }
+    });
+    TTSService().speak(fakeText);
+  }
+
+  void _closeApp() {
+    TTSService().stop();
+    SystemNavigator.pop();
   }
 
   Future<void> _requestMicPermission() async {
@@ -135,11 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Always show as if talking
-    final buttonColor = Colors.red;
-    final buttonText = 'סיים שיחה';
-    final buttonIcon = Icons.stop;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
@@ -172,17 +145,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 56,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: buttonColor,
+                    backgroundColor: Colors.red,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  icon: Icon(buttonIcon, color: Colors.white),
-                  label: Text(
-                    buttonText,
-                    style: const TextStyle(fontSize: 20, color: Colors.white),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  label: const Text(
+                    'סגור אפליקציה',
+                    style: TextStyle(fontSize: 20, color: Colors.white),
                   ),
-                  onPressed: _stopConversation,
+                  onPressed: _closeApp,
                 ),
               ),
             ),
