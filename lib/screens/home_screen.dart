@@ -20,21 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isActive = false;
   bool _isProcessing = false;
   bool _greetingSpoken = false;
-  Timer? _simulationTimer;
   bool _isListening = false;
-  final List<String> _fakeSentences = [
-    'מה שלומך היום?',
-    'האם אתה צריך עזרה במשהו?',
-    'מזג האוויר יפה היום.',
-    'אני כאן כדי לעזור לך.',
-    'ספר לי מה תרצה לעשות.',
-    'האם יש משהו שתרצה לדעת?',
-    'במה אפשר לסייע לך?',
-    'האם תרצה לשמוע בדיחה?',
-    'האם יש לך שאלה בשבילי?',
-    'אני אוהב לעזור לאנשים.'
-  ];
-  final Random _random = Random();
 
   @override
   void initState() {
