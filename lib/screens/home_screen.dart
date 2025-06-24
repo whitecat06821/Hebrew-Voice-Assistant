@@ -154,14 +154,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Padding(
-              padding: EdgeInsets.only(top: 32.0),
-              child: Text(
-                'שלום, איך אפשר לעזור לך?',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-            ),
             if (modeIcon != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16.0),
